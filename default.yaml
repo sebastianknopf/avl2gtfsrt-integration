@@ -1,0 +1,16 @@
+instances:
+  - id: demo-pajgps
+    adapter:
+      type: pajgps
+      endpoint: https://connect.paj-gps.com/api/v1
+      username: username
+      password: password
+      interval: 10
+    broker:
+      host: mqtt.yourdomain.com
+      port: 1883
+      username: username
+      password: password
+    vdv435:
+      organisation_id: demo
+      itcs_id: 1

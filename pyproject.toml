@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "avl2gtfsrt.integration"
+description = "Integrator for arbitrary tracking device APIs into avl2gtfsrt"
+authors = [{ name = "Sebastian Knopf", email = "mail@sebastian-knopf.de" }]
+readme = "README.md"
+license = {text = "Apache License (2.0)"}
+dependencies = [
+    "click",
+    "lxml",
+    "paho-mqtt",
+    "pytz",
+    "pyyaml",
+    "requests",
+    "uvicorn",
+    "xmltodict"
+]
+requires-python = ">=3.10"
+
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+write_to = "src/avl2gtfsrt/integration/common/version.py"
