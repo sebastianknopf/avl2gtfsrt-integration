@@ -21,5 +21,6 @@ def run():
     except Exception as ex:
         logging.exception(ex)
 
+
 if __name__ == '__main__':
     cli()
