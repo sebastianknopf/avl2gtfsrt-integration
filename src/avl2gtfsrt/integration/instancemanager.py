@@ -11,6 +11,8 @@ from avl2gtfsrt.integration.config import Configuration
 class InstanceManager():
     
     def __init__(self, config_filename: str) -> None:
+        logging.info(f"{self.__class__.__name__}: Loading configuration file ...")
+        
         # load config and set default values
         with open(config_filename, 'r') as config_file:
             self._config = yaml.safe_load(config_file)
