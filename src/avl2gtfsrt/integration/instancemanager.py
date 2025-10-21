@@ -5,7 +5,7 @@ import yaml
 
 from threading import Event
 
-from avl2gtfsrt.integration.adapter.instance import AvlDataInstance
+from avl2gtfsrt.integration.instance import AvlDataInstance
 from avl2gtfsrt.integration.config import Configuration
 
 class InstanceManager():

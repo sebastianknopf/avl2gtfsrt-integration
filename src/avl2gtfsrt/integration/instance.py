@@ -3,6 +3,9 @@ import time
 
 from threading import Event, Thread
 
+from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
+from avl2gtfsrt.integration.model.types import AvlPosition
+
 
 class AvlDataInstance:
 
@@ -11,7 +14,8 @@ class AvlDataInstance:
 
         # setup everything for the adapter and thread management
         if config['adapter']['type'] == 'pajgps':
-            pass
+            from avl2gtfsrt.integration.adapter.pajgps.adapter import PajGpsAdapter
+            self._adapter: BaseAdapter = PajGpsAdapter(config['adapter'])
         else:
             raise ValueError(f"Unknown adapter type {config['adapter']} in instance \"{self.id}\"!")
 
@@ -27,11 +31,15 @@ class AvlDataInstance:
 
     def stop(self) -> None:
         self._should_run.clear()
-        self._thread.join()
 
     def _run_internal(self) -> None:
         while self._should_run.is_set():
-            logging.info(f"Instance \"{self.id}\" is running ...")
-            time.sleep(1)
+            # call configured adapter in order to get all current vehicle positions
+            logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicle positions ...")
+            result: list[AvlPosition] = self._adapter.get_current_positions()
 
+            # wait for the adapter configured timespan until the next request
+            time.sleep(self._adapter.interval)
+
+        # TODO: implement real shutdown here ...
         logging.info(f"This is the internal shutdown of \"{self.id}\"")
