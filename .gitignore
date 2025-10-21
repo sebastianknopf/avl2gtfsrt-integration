@@ -205,7 +205,7 @@ pip-selfcheck.json
 .ionide
 
 # Project Specific
-dev.env
+config.yaml
 
 src/avl2gtfsrt/integration/common/version.py
 

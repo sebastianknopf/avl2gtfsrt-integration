@@ -16,7 +16,7 @@ def run():
 
     # startup instances regarding the config YAML file
     try:
-        mgr: InstanceManager = InstanceManager()
+        mgr: InstanceManager = InstanceManager('config.yaml')
         mgr.run()
     except Exception as ex:
         logging.exception(ex)

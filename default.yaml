@@ -1,5 +1,5 @@
 instances:
-  - id: demo-pajgps
+  - id: demo
     adapter:
       type: pajgps
       endpoint: https://connect.paj-gps.com/api/v1
@@ -12,5 +12,5 @@ instances:
       username: username
       password: password
     vdv435:
-      organisation_id: demo
-      itcs_id: 1
+      organisation: demo
+      itcs: 1
