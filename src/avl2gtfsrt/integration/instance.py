@@ -12,6 +12,9 @@ class AvlDataInstance:
     def __init__(self, config: dict) -> None:
         self.id = config['id']
 
+        self._vehicles: list[Vehicle] = list()
+        self._vehicle_positions: dict[Vehicle, VehiclePosition] = dict()
+
         # setup everything for the adapter and thread management
         if config['adapter']['type'] == 'pajgps':
             from avl2gtfsrt.integration.adapter.pajgps.adapter import PajGpsAdapter
@@ -38,13 +41,38 @@ class AvlDataInstance:
             logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicles ...")
             vehicles_result: list[Vehicle] = self._adapter.get_vehicles()
 
-            # process vehicles here ...
+            # log on and add newly discovered vehicles ...
+            for vehicle in vehicles_result:
+                if vehicle not in self._vehicles:
+                    logging.debug(f"{self.id}/{self.__class__.__name__}: Vehicle \"{vehicle.vehicle_ref}\" discovered.")
+                    logging.info(f"{self.id}/{self.__class__.__name__}: Logging on vehicle \"{vehicle.vehicle_ref}\" ...")
 
+                    self._vehicles.append(vehicle)
+
+            # log off and remove disappeared vehicles ...
+            for vehicle in self._vehicles:
+                if vehicle not in vehicles_result:
+                    logging.debug(f"{self.id}/{self.__class__.__name__}: Vehicle \"{vehicle.vehicle_ref}\" disappeared.")
+                    logging.info(f"{self.id}/{self.__class__.__name__}: Logging on vehicle \"{vehicle.vehicle_ref}\" ...")
+
+                    self._vehicles.remove(vehicle)
+                    del self._vehicle_positions[vehicle]
+
+            # load and process vehicle positions for all vehicles
             logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicle positions of {len(vehicles_result)} vehicles ...")
             vehicle_positions_result: list[VehiclePosition] = self._adapter.get_vehicle_positions()
+
+            for vehicle_position in vehicle_positions_result:
+                last_vehicle_position: VehiclePosition|None = self._vehicle_positions[vehicle_position.vehicle.id] if vehicle_position.vehicle.id in self._vehicle_positions else None
+                
+                if vehicle_position.latitude != last_vehicle_position.latitude or vehicle_position.longitude != last_vehicle_position.longitude:
+                    logging.info(f"{self.id}/{self.__class__.__name__}: Publishing GNSS position update for vehicle \"{vehicle.vehicle_ref}\" ...")
 
             # wait for the adapter configured timespan until the next request
             time.sleep(self._adapter.interval)
 
-        # TODO: implement real shutdown here ...
-        logging.info(f"This is the internal shutdown of \"{self.id}\"")
+        # shutdown the instance here ...
+        logging.info(f"{self.id}/{self.__class__.__name__}: Logging off all vehicles of instance \"{self.id}\" ...")
+
+        for vehicle in self._vehicles:
+            logging.info(f"{self.id}/{self.__class__.__name__}: Logging off vehicle \"{vehicle.vehicle_ref}\" ...")
