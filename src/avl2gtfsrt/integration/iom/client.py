@@ -46,13 +46,13 @@ class IomClient:
             self._mqtt.username_pw_set(username=self._mqtt_username, password=self._mqtt_password)
 
         # finally connect to the broker ...
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Connecting to MQTT broker at {self._mqtt_host}:{self._mqtt_port}")
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Connecting to MQTT broker at {self._mqtt_host}:{self._mqtt_port} ...")
         self._mqtt.connect(self._mqtt_host, int(self._mqtt_port))
         
         self._mqtt.loop_start()
 
     def terminate(self) -> None:
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Shutting down MQTT connection...")
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Shutting down MQTT connection ...")
         self._mqtt.disconnect()
 
         self._mqtt.loop_stop()
