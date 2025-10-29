@@ -6,12 +6,19 @@ from threading import Event, Thread
 
 from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
 from avl2gtfsrt.integration.model.types import Vehicle, VehiclePosition
+from avl2gtfsrt.integration.iom.client import IomClient
 
 
 class AvlDataInstance:
 
     def __init__(self, config: dict) -> None:
         self.id = config['id']
+
+        self._iom: IomClient = IomClient(
+            config['vdv435']['organisation'],
+            config['vdv435']['itcs'],
+            config['broker']
+        )
 
         self._vehicles: list[Vehicle] = list()
         self._vehicle_positions: dict[Vehicle, VehiclePosition] = dict()
@@ -37,6 +44,10 @@ class AvlDataInstance:
         self._should_run.clear()
 
     def _run_internal(self) -> None:
+        # startup IoM client
+        self._iom.start()
+
+        # main loop, run adapter logic here ...
         while self._should_run.is_set():
             # call configured adapter in order to get all current vehicle positions
             logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicles ...")
@@ -48,13 +59,17 @@ class AvlDataInstance:
                     logging.debug(f"{self.id}/{self.__class__.__name__}: Vehicle \"{vehicle.vehicle_ref}\" discovered.")
                     logging.info(f"{self.id}/{self.__class__.__name__}: Logging on vehicle \"{vehicle.vehicle_ref}\" ...")
 
+                    self._iom.log_on_vehicle(vehicle)
+
                     self._vehicles.append(vehicle)
 
             # log off and remove disappeared vehicles ...
             for vehicle in self._vehicles:
                 if vehicle not in vehicles_result:
                     logging.debug(f"{self.id}/{self.__class__.__name__}: Vehicle \"{vehicle.vehicle_ref}\" disappeared.")
-                    logging.info(f"{self.id}/{self.__class__.__name__}: Logging on vehicle \"{vehicle.vehicle_ref}\" ...")
+                    logging.info(f"{self.id}/{self.__class__.__name__}: Logging off vehicle \"{vehicle.vehicle_ref}\" ...")
+                    
+                    self._iom.log_off_vehicle(vehicle)
 
                     self._vehicles.remove(vehicle)
                     del self._vehicle_positions[vehicle]
@@ -69,6 +84,7 @@ class AvlDataInstance:
                 
                 if vehicle_position.timestamp >= reference_timestamp and (vehicle_position.latitude != last_vehicle_position.latitude or vehicle_position.longitude != last_vehicle_position.longitude):
                     logging.info(f"{self.id}/{self.__class__.__name__}: Publishing GNSS position update for vehicle \"{vehicle.vehicle_ref}\" ...")
+                    self._iom.publish_gnss_position_update(vehicle_position)
 
             # wait for the adapter configured timespan until the next request
             time.sleep(self._adapter.interval)
@@ -76,3 +92,6 @@ class AvlDataInstance:
         # shutdown the instance here ...
         for vehicle in self._vehicles:
             logging.info(f"{self.id}/{self.__class__.__name__}: Logging off vehicle \"{vehicle.vehicle_ref}\" ...")
+            self._iom.log_off_vehicle(vehicle)
+
+        self._iom.terminate()
