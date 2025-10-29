@@ -1,6 +1,7 @@
 import logging
 import time
 
+from datetime import datetime, timedelta
 from threading import Event, Thread
 
 from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
@@ -18,7 +19,7 @@ class AvlDataInstance:
         # setup everything for the adapter and thread management
         if config['adapter']['type'] == 'pajgps':
             from avl2gtfsrt.integration.adapter.pajgps.adapter import PajGpsAdapter
-            self._adapter: BaseAdapter = PajGpsAdapter(config['adapter'])
+            self._adapter: BaseAdapter = PajGpsAdapter(self.id, config['adapter'])
         else:
             raise ValueError(f"Unknown adapter type {config['adapter']} in instance \"{self.id}\"!")
 
@@ -63,16 +64,15 @@ class AvlDataInstance:
             vehicle_positions_result: list[VehiclePosition] = self._adapter.get_vehicle_positions()
 
             for vehicle_position in vehicle_positions_result:
+                reference_timestamp: int = int((datetime.now() - timedelta(seconds=150)).timestamp())
                 last_vehicle_position: VehiclePosition|None = self._vehicle_positions[vehicle_position.vehicle.id] if vehicle_position.vehicle.id in self._vehicle_positions else None
                 
-                if vehicle_position.latitude != last_vehicle_position.latitude or vehicle_position.longitude != last_vehicle_position.longitude:
+                if vehicle_position.timestamp >= reference_timestamp and (vehicle_position.latitude != last_vehicle_position.latitude or vehicle_position.longitude != last_vehicle_position.longitude):
                     logging.info(f"{self.id}/{self.__class__.__name__}: Publishing GNSS position update for vehicle \"{vehicle.vehicle_ref}\" ...")
 
             # wait for the adapter configured timespan until the next request
             time.sleep(self._adapter.interval)
 
         # shutdown the instance here ...
-        logging.info(f"{self.id}/{self.__class__.__name__}: Logging off all vehicles of instance \"{self.id}\" ...")
-
         for vehicle in self._vehicles:
             logging.info(f"{self.id}/{self.__class__.__name__}: Logging off vehicle \"{vehicle.vehicle_ref}\" ...")
