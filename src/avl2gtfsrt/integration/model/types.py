@@ -10,3 +10,4 @@ class VehiclePosition:
     vehicle: Vehicle
     latitude: float
     longitude: float
+    timestamp: int

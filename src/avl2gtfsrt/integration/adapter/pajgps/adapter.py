@@ -9,8 +9,8 @@ from avl2gtfsrt.integration.model.types import VehiclePosition, Vehicle
 
 class PajGpsAdapter(BaseAdapter):
     
-    def __init__(self, config: dict) -> None:
-        super().__init__(config)
+    def __init__(self, instance_id: str, config: dict) -> None:
+        super().__init__(instance_id, config)
 
         self._login_token: str|None = None
 
@@ -100,7 +100,8 @@ class PajGpsAdapter(BaseAdapter):
                 position: VehiclePosition = VehiclePosition(
                     vehicle=vehicle,
                     latitude=position_data['lat'],
-                    longitude=position_data['lng']
+                    longitude=position_data['lng'],
+                    timestamp=position_data['dateunix']
                 )
 
                 positions.append(position)
