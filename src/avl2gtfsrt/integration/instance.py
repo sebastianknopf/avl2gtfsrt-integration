@@ -4,7 +4,7 @@ import time
 from threading import Event, Thread
 
 from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
-from avl2gtfsrt.integration.model.types import AvlPosition
+from avl2gtfsrt.integration.model.types import Vehicle, VehiclePosition
 
 
 class AvlDataInstance:
@@ -35,8 +35,13 @@ class AvlDataInstance:
     def _run_internal(self) -> None:
         while self._should_run.is_set():
             # call configured adapter in order to get all current vehicle positions
-            logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicle positions ...")
-            result: list[AvlPosition] = self._adapter.get_current_positions()
+            logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicles ...")
+            vehicles_result: list[Vehicle] = self._adapter.get_vehicles()
+
+            # process vehicles here ...
+
+            logging.info(f"{self.id}/{self.__class__.__name__}: Loading current vehicle positions of {len(vehicles_result)} vehicles ...")
+            vehicle_positions_result: list[VehiclePosition] = self._adapter.get_vehicle_positions()
 
             # wait for the adapter configured timespan until the next request
             time.sleep(self._adapter.interval)
