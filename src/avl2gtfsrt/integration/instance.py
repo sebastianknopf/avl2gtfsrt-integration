@@ -15,6 +15,7 @@ class AvlDataInstance:
         self.id = config['id']
 
         self._iom: IomClient = IomClient(
+            self.id,
             config['vdv435']['organisation'],
             config['vdv435']['itcs'],
             config['broker']
