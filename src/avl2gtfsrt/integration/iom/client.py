@@ -25,7 +25,7 @@ class IomClient:
         )
 
         # create TLS topic structures
-        self._tls_pub_itcs_inbox: tuple[str, int] = ("IoM/1.0/DataVersion/any/Inbox/ItcsInbox/Country/de/any/Organisation/{organisation_id}/any/ItcsId/{itcs_id}/RequestData", 2)
+        self._tls_pub_itcs_inbox: tuple[str, int] = ("IoM/1.0/DataVersion/any/Inbox/ItcsInbox/Country/de/any/Organisation/{organisation_id}/any/ItcsId/{itcs_id}/CorrelationId/1/RequestData", 2)
         self._tls_pub_vehicle_physical_position: tuple[str, int] = ("IoM/1.0/DataVersion/any/Country/de/any/Organisation/{organisation_id}/any/Vehicle/{vehicle_ref}/any/PhysicalPosition/GnssPhysicalPositionData", 0)
 
         # keep track of all global placeholders here
@@ -45,7 +45,7 @@ class IomClient:
             raise RuntimeError("Failed to connect to the IoM MQTT broker.")
 
     def _on_message(self, client, userdata, message):
-        logging.info(f"{self.__class__.__name__}: Received message in topic {message.topic}")
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Received message in topic {message.topic}")
 
     def _on_disconnect(self, client, userdata, flags, rc, properties):
         pass
@@ -76,7 +76,7 @@ class IomClient:
             retain
         )
 
-        logging.info(f"{self.__class__.__name__}: Published message to topic {tls_str}")
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Published message to topic {tls_str}")
     
     def start(self) -> None:
         # define MQTT callback methods
@@ -136,7 +136,6 @@ class IomClient:
         self._publish(
             'pub_vehicle_physical_position', 
             gnss_physical_position_structure.xml(), 
-            {
-                'vehicle_ref': vehicle_position.vehicle.vehicle_ref
-            }
+            retain=True,
+            vehicle_ref=vehicle_position.vehicle.vehicle_ref
         )
