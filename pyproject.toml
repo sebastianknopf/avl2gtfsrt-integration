@@ -12,6 +12,7 @@ dependencies = [
     "click",
     "lxml",
     "paho-mqtt",
+    "pydantic",
     "pytz",
     "pyyaml",
     "requests",
