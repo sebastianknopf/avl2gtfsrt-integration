@@ -49,6 +49,93 @@ class IomClient:
         self._mqtt_username: str = config['username']
         self._mqtt_password: str = config['password']        
 
+    def get_subscribed_topics(self) -> tuple[str, int]:
+        subscribed_topics: list = [
+            self._get_tls('sub_vehicle_inbox')
+        ]
+        
+        return subscribed_topics
+    
+    def start(self) -> None:
+        # define MQTT callback methods
+        self._mqtt.on_connect = self._on_connect
+        self._mqtt.on_message = self._on_message
+        self._mqtt.on_disconnect = self._on_disconnect
+
+        # set username and password if provided
+        if self._mqtt_username is not None and self._mqtt_password is not None:
+            self._mqtt.username_pw_set(username=self._mqtt_username, password=self._mqtt_password)
+
+        # finally connect to the broker ...
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Connecting to MQTT broker at {self._mqtt_host}:{self._mqtt_port} ...")
+        self._mqtt.connect(self._mqtt_host, int(self._mqtt_port))
+        
+        self._mqtt.loop_start()
+
+    def process(self, topic: str, payload: bytes) -> None:
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Received message in topic {topic}")
+        
+        if self._tls_matches(topic, 'sub_vehicle_inbox'):
+            self._handle_reponse(topic, payload)
+        """else:
+            self._handle_message(topic, payload)"""
+
+    def terminate(self) -> None:
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Shutting down MQTT connection ...")
+        self._mqtt.disconnect()
+
+        self._mqtt.loop_stop()
+    
+    def log_on_vehicle(self, vehicle: Vehicle) -> bool:
+        vehicle_ref: VehicleRef = VehicleRef(**{'#text': vehicle.vehicle_ref})
+        
+        log_on_message: TechnicalVehicleLogOnRequestStructure = TechnicalVehicleLogOnRequestStructure(**{
+            'netex:VehicleRef': vehicle_ref
+        })
+
+        response: TechnicalVehicleLogOnResponseStructure = self._request('pub_itcs_inbox', log_on_message.xml())
+        if response.technical_vehicle_log_on_response_error is not None:
+            response_code: str = response.technical_vehicle_log_on_response_error.technical_vehicle_log_on_response_code
+            raise RuntimeError(f"Failed to log on vehicle {vehicle.vehicle_ref}, Response: {response_code}!")
+        else:
+            logging.info(f"{self.instance_id}/{self.__class__.__name__}: Vehicle {vehicle.vehicle_ref} successfully logged on.")
+
+    def log_off_vehicle(self, vehicle: Vehicle) -> bool:
+        vehicle_ref: VehicleRef = VehicleRef(**{'#text': vehicle.vehicle_ref})
+        
+        log_off_message: TechnicalVehicleLogOffRequestStructure = TechnicalVehicleLogOffRequestStructure(**{
+            'netex:VehicleRef': vehicle_ref
+        })
+
+        response: TechnicalVehicleLogOffResponseStructure = self._request('pub_itcs_inbox', log_off_message.xml())
+        if response.technical_vehicle_log_off_response_error is not None:
+            response_code: str = response.technical_vehicle_log_off_response_error.technical_vehicle_log_off_response_code
+            raise RuntimeError(f"Failed to log on vehicle {vehicle.vehicle_ref}, Response: {response_code}!")
+        else:
+            logging.info(f"{self.instance_id}/{self.__class__.__name__}: Vehicle {vehicle.vehicle_ref} successfully logged off.")
+
+    def publish_gnss_position_update(self, vehicle_position: VehiclePosition) -> None:
+        dt: datetime = datetime.fromtimestamp(vehicle_position.timestamp, tz=timezone.utc)
+        timestamp_of_measurement: str = dt.replace(microsecond=0).isoformat()
+        
+        gnss_physical_position_structure: GnssPhysicalPositionDataStructure = GnssPhysicalPositionDataStructure(
+            PublisherId=self._mqtt._client_id,
+            TimestampOfMeasurement=timestamp_of_measurement,
+            GnssPhysicalPosition=GnssPhysicalPosition(
+                WGS84PhysicalPosition=WGS84PhysicalPosition(
+                    Latitude=vehicle_position.latitude,
+                    Longitude=vehicle_position.longitude
+                )
+            )
+        )
+
+        self._publish(
+            'pub_vehicle_physical_position', 
+            gnss_physical_position_structure.xml(), 
+            retain=True,
+            vehicle_ref=vehicle_position.vehicle.vehicle_ref
+        )
+    
     def _on_connect(self, client, userdata, flags, rc, properties):
         if not rc.is_failure:
             for topic, qos in self.get_subscribed_topics():
@@ -138,90 +225,3 @@ class IomClient:
             # raise condition update
             with self._correlation_condition:
                 self._correlation_condition.notify()
-
-    def get_subscribed_topics(self) -> tuple[str, int]:
-        subscribed_topics: list = [
-            self._get_tls('sub_vehicle_inbox')
-        ]
-        
-        return subscribed_topics
-    
-    def start(self) -> None:
-        # define MQTT callback methods
-        self._mqtt.on_connect = self._on_connect
-        self._mqtt.on_message = self._on_message
-        self._mqtt.on_disconnect = self._on_disconnect
-
-        # set username and password if provided
-        if self._mqtt_username is not None and self._mqtt_password is not None:
-            self._mqtt.username_pw_set(username=self._mqtt_username, password=self._mqtt_password)
-
-        # finally connect to the broker ...
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Connecting to MQTT broker at {self._mqtt_host}:{self._mqtt_port} ...")
-        self._mqtt.connect(self._mqtt_host, int(self._mqtt_port))
-        
-        self._mqtt.loop_start()
-
-    def process(self, topic: str, payload: bytes) -> None:
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Received message in topic {topic}")
-        
-        if self._tls_matches(topic, 'sub_vehicle_inbox'):
-            self._handle_reponse(topic, payload)
-        """else:
-            self._handle_message(topic, payload)"""
-
-    def terminate(self) -> None:
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Shutting down MQTT connection ...")
-        self._mqtt.disconnect()
-
-        self._mqtt.loop_stop()
-    
-    def log_on_vehicle(self, vehicle: Vehicle) -> bool:
-        vehicle_ref: VehicleRef = VehicleRef(**{'#text': vehicle.vehicle_ref})
-        
-        log_on_message: TechnicalVehicleLogOnRequestStructure = TechnicalVehicleLogOnRequestStructure(**{
-            'netex:VehicleRef': vehicle_ref
-        })
-
-        response: TechnicalVehicleLogOnResponseStructure = self._request('pub_itcs_inbox', log_on_message.xml())
-        if response.technical_vehicle_log_on_response_error is not None:
-            response_code: str = response.technical_vehicle_log_on_response_error.technical_vehicle_log_on_response_code
-            raise RuntimeError(f"Failed to log on vehicle {vehicle.vehicle_ref}, Response: {response_code}!")
-        else:
-            logging.info(f"{self.instance_id}/{self.__class__.__name__}: Vehicle {vehicle.vehicle_ref} successfully logged on.")
-
-    def log_off_vehicle(self, vehicle: Vehicle) -> bool:
-        vehicle_ref: VehicleRef = VehicleRef(**{'#text': vehicle.vehicle_ref})
-        
-        log_off_message: TechnicalVehicleLogOffRequestStructure = TechnicalVehicleLogOffRequestStructure(**{
-            'netex:VehicleRef': vehicle_ref
-        })
-
-        response: TechnicalVehicleLogOffResponseStructure = self._request('pub_itcs_inbox', log_off_message.xml())
-        if response.technical_vehicle_log_off_response_error is not None:
-            response_code: str = response.technical_vehicle_log_off_response_error.technical_vehicle_log_off_response_code
-            raise RuntimeError(f"Failed to log on vehicle {vehicle.vehicle_ref}, Response: {response_code}!")
-        else:
-            logging.info(f"{self.instance_id}/{self.__class__.__name__}: Vehicle {vehicle.vehicle_ref} successfully logged off.")
-
-    def publish_gnss_position_update(self, vehicle_position: VehiclePosition) -> None:
-        dt: datetime = datetime.fromtimestamp(vehicle_position.timestamp, tz=timezone.utc)
-        timestamp_of_measurement: str = dt.replace(microsecond=0).isoformat()
-        
-        gnss_physical_position_structure: GnssPhysicalPositionDataStructure = GnssPhysicalPositionDataStructure(
-            PublisherId=self._mqtt._client_id,
-            TimestampOfMeasurement=timestamp_of_measurement,
-            GnssPhysicalPosition=GnssPhysicalPosition(
-                WGS84PhysicalPosition=WGS84PhysicalPosition(
-                    Latitude=vehicle_position.latitude,
-                    Longitude=vehicle_position.longitude
-                )
-            )
-        )
-
-        self._publish(
-            'pub_vehicle_physical_position', 
-            gnss_physical_position_structure.xml(), 
-            retain=True,
-            vehicle_ref=vehicle_position.vehicle.vehicle_ref
-        )
