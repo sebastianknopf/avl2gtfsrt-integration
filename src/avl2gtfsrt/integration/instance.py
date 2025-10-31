@@ -23,7 +23,6 @@ class AvlDataInstance:
 
         self._vehicles: list[Vehicle] = list()
         self._vehicle_positions: dict[any, VehiclePosition] = dict()
-        self._vehicle_blacklist: list[Vehicle] = list()
 
         # setup everything for the adapter and thread management
         if config['adapter']['type'] == 'pajgps':
@@ -60,24 +59,22 @@ class AvlDataInstance:
 
                 # log on and add newly discovered vehicles ...
                 for vehicle in vehicles_result:
-                    if vehicle not in self._vehicles or vehicle in self._vehicle_blacklist:
+                    # verify log on state of the vehicle
+                    # use vehicle of this instance as only this has the log on state!
+                    instance_vehicle: Vehicle|None = next((v for v in self._vehicles if v.vehicle_ref == vehicle.vehicle_ref), None)
+                    if vehicle not in self._vehicles or instance_vehicle is not None and not instance_vehicle.is_logged_on:
                         logging.debug(f"{self.id}/{self.__class__.__name__}: Vehicle \"{vehicle.vehicle_ref}\" discovered.")
                         logging.info(f"{self.id}/{self.__class__.__name__}: Logging on vehicle \"{vehicle.vehicle_ref}\" ...")
+
+                        if vehicle not in self._vehicles:
+                            self._vehicles.append(vehicle)
 
                         try:
                             self._iom.log_on_vehicle(vehicle)
 
-                            self._vehicles.append(vehicle)
-
-                            # remove vehicle from blacklist, in order to allow further messages
-                            if vehicle in self._vehicle_blacklist:
-                                self._vehicle_blacklist.remove(vehicle)
+                            vehicle.is_logged_on = True
                         except Exception as ex:
                             logging.error(ex)
-
-                            # add vehicle to blacklist in order to suppress further messages
-                            if vehicle not in self._vehicle_blacklist:
-                                self._vehicle_blacklist.append(vehicle)
 
                 # log off and remove disappeared vehicles ...
                 for vehicle in self._vehicles:
@@ -87,9 +84,6 @@ class AvlDataInstance:
                         
                         self._vehicles.remove(vehicle)
                         del self._vehicle_positions[vehicle]
-
-                        if vehicle in self._vehicle_blacklist:
-                            self._vehicle_blacklist.remove(vehicle)
                         
                         try:
                             self._iom.log_off_vehicle(vehicle)
@@ -101,7 +95,11 @@ class AvlDataInstance:
                 vehicle_positions_result: list[VehiclePosition] = self._adapter.get_vehicle_positions()
 
                 for vehicle_position in vehicle_positions_result:
-                    if vehicle_position.vehicle not in self._vehicle_blacklist:
+
+                    # verify log on state of the vehicle
+                    # use vehicle of this instance as only this has the log on state!
+                    instance_vehicle: Vehicle|None = next((v for v in self._vehicles if v.vehicle_ref == vehicle_position.vehicle.vehicle_ref), None)
+                    if instance_vehicle is not None and instance_vehicle.is_logged_on:
                         reference_timestamp: int = int((datetime.now() - timedelta(seconds=150)).timestamp())
                         last_vehicle_position: VehiclePosition|None = self._vehicle_positions[vehicle_position.vehicle.id] if vehicle_position.vehicle.id in self._vehicle_positions else None
                         
@@ -118,12 +116,11 @@ class AvlDataInstance:
             except Exception as ex:
                 logging.error(ex)
             finally:
-                
                 # wait for the adapter configured timespan until the next request
                 time.sleep(self._adapter.interval)
 
         # shutdown the instance here ...
-        for vehicle in (self._vehicles + self._vehicle_blacklist):
+        for vehicle in self._vehicles:
             try:
                 logging.info(f"{self.id}/{self.__class__.__name__}: Logging off vehicle \"{vehicle.vehicle_ref}\" ...")
                 self._iom.log_off_vehicle(vehicle)

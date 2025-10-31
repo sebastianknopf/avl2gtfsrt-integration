@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 class Vehicle:
     id: any
     vehicle_ref: str
+    is_logged_on: bool = False
 
 @dataclass
 class VehiclePosition:
