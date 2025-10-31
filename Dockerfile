@@ -5,7 +5,7 @@ RUN apt update -y && apt install -y git
 WORKDIR /app
 
 COPY .git/ /app/.git
-RUN mkdir -p /app/src/avl2gtfsrt/common
+RUN mkdir -p /app/src/avl2gtfsrt/integration/common
 
 COPY pyproject.toml /app
 RUN pip install --no-cache-dir .
