@@ -16,4 +16,4 @@ RUN pip install --no-deps .
 
 STOPSIGNAL SIGTERM
 
-ENTRYPOINT python -m avl2gtfsrt.integration run
+ENTRYPOINT ["python", "-m", "avl2gtfsrt.integration", "run"]
