@@ -58,10 +58,13 @@ class PajGpsAdapter(BaseAdapter):
             # extract data and store vehicles ...
             devices_data: dict = devices_response.json()
             for device in devices_data['success']:
-                self._vehicles.append(Vehicle(
+                vehicle: Vehicle = Vehicle(
                     id=device['id'],
                     vehicle_ref=device['name']
-                ))
+                )
+
+                if vehicle not in self._vehicles:
+                    self._vehicles.append(vehicle)
 
             self._vehicle_expiration = datetime.now() + timedelta(
                 minutes=30
@@ -74,8 +77,6 @@ class PajGpsAdapter(BaseAdapter):
     
     def get_vehicle_positions(self) -> list[VehiclePosition]:
         self.init()
-        
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Loading current vehicle positions ...")
 
         all_last_positions_response: Response = requests.post(
             self._get_url('trackerdata/getalllastpositions'),
@@ -106,4 +107,6 @@ class PajGpsAdapter(BaseAdapter):
 
                 positions.append(position)
 
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Loaded {len(positions)} positions.")
+        
         return positions
