@@ -10,6 +10,7 @@ class BaseAdapter(ABC):
         self.instance_id: str = instance_id
         self.endpoint: str = config['endpoint']
         self.interval: int = config['interval']
+        self.autologoff: int = config['autologoff']
 
         self._username: str|None = config['username']
         self._password: str|None = config['password']

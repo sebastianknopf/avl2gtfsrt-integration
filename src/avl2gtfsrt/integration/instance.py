@@ -86,7 +86,7 @@ class AvlDataInstance:
                 vehicle_positions_published: bool = False
 
                 for vehicle_position in vehicle_positions_result:
-                    reference_timestamp: int = int((datetime.now() - timedelta(minutes=5)).timestamp())
+                    reference_timestamp: int = int((datetime.now() - timedelta(seconds=self._adapter.autologoff)).timestamp())
                     last_vehicle_position: VehiclePosition|None = self._vehicle_positions[vehicle_position.vehicle.id] if vehicle_position.vehicle.id in self._vehicle_positions else None
 
                     if vehicle_position.timestamp >= reference_timestamp and (last_vehicle_position is None or vehicle_position.latitude != last_vehicle_position.latitude or vehicle_position.longitude != last_vehicle_position.longitude):

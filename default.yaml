@@ -6,6 +6,7 @@ instances:
       username: username
       password: password
       interval: 10
+      autologoff: 1800
     broker:
       host: mqtt.yourdomain.com
       port: 1883

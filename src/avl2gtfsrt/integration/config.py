@@ -10,7 +10,8 @@ class Configuration:
             'adapter': {
                 'username': None,
                 'password': None,
-                'interval': 10
+                'interval': 10,
+                'autologoff': 1800
             },
             'broker': {
                 'port': 1883,
