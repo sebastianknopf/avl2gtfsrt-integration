@@ -107,6 +107,6 @@ class PajGpsAdapter(BaseAdapter):
 
                 positions.append(position)
 
-        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Loaded {len(positions)} positions.")
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Loaded {len(positions)} positions for vehicles {[int(v.id) for v in self._vehicles]}.")
         
         return positions
