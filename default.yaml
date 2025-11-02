@@ -1,17 +1,17 @@
 instances:
-  - id: demo
+  - id: demo                                        # unique ID for the provider instance
     adapter:
-      type: pajgps
-      endpoint: https://connect.paj-gps.com/api/v1
-      username: username
-      password: password
-      interval: 10
-      autologoff: 1800
+      type: pajgps                                  # adapter type name identifying the correct adapter
+      endpoint: https://connect.paj-gps.com/api/v1  # endpoint of the providers API
+      username: username                            # (optional) username to access the providers API; default: None
+      password: password                            # (optional) password to access the providers API; default: None
+      interval: 10                                  # (optional) polling interval in seconds for the providers API; default: 10s
+      autologoff: 1800                              # (optional) duration in seconds for logging off a vehicle if no new positions are delivered; default: 1800s (30min)
     broker:
-      host: mqtt.yourdomain.com
-      port: 1883
-      username: username
-      password: password
+      host: mqtt.yourdomain.com                     # hostname for the MQTT broker
+      port: 1883                                    # (optional) port for the MQTT broker; default: 1883
+      username: username                            # (optional) username for the MQTT broker
+      password: password                            # (optional) password for the MQTT broker
     vdv435:
-      organisation: demo
-      itcs: 1
+      organisation: demo                            # organisation ID for the VDV435 communication
+      itcs: 1                                       # ITCS ID for the VDV435 communication
