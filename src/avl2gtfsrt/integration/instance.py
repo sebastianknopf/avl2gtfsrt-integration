@@ -31,7 +31,7 @@ class AvlDataInstance:
             from avl2gtfsrt.integration.adapter.pajgps.adapter import PajGpsAdapter
             self._adapter: BaseAdapter = PajGpsAdapter(self.id, config['adapter'])
         else:
-            raise ValueError(f"Unknown adapter type {config['adapter']} in instance \"{self.id}\"!")
+            raise ValueError(f"Unknown adapter type {config['adapter']['type']} in instance \"{self.id}\"!")
 
         self._thread = Thread(target=self._run_internal)
 
