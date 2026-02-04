@@ -11,10 +11,7 @@ class PajGpsAdapter(PollingAdapter):
     
     def __init__(self, instance_id: str, config: dict) -> None:
         super().__init__(instance_id, config)
-
-        self._login_token: str|None = None
-
-        self._vehicles: list[Vehicle] = list()
+        
         self._vehicle_expiration: datetime|None = None
 
     def init(self) -> bool:

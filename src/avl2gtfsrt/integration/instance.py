@@ -32,7 +32,7 @@ class AvlDataInstance:
             self._adapter: BaseAdapter = PajGpsAdapter(self.id, config['adapter'])
         elif config['adapter']['type'] == 'traccar':
             from avl2gtfsrt.integration.adapter.traccar.adapter import TraccarAdapter
-            self._adapter: BaseAdapter = TraccarAdapter(self.id, config['adapter'], self._iom)
+            self._adapter: BaseAdapter = TraccarAdapter(self.id, config['adapter'])
         else:
             raise ValueError(f"Unknown adapter type {config['adapter']['type']} in instance \"{self.id}\"!")
 
@@ -136,8 +136,13 @@ class AvlDataInstance:
 
         elif isinstance(self._adapter, RealtimeAdapter):
             
-            # this is realtime adapter, so we don't need to manage its lifecycle by intervals
-            # simply run the adapter here ...
+            # this is realtime adapter, so we only need to configure its callback methods and process the results in
+            # IomClient implementation
+            self._adapter.on_vehicle_log_on = lambda v: self._iom.log_on_vehicle(v)
+            self._adapter.on_vehicle_log_off = lambda v: self._iom.log_off_vehicle(v)
+            self._adapter.on_vehicle_physical_position_update = lambda vp: self._iom.publish_gnss_position_update(vp)
+
+            # then,simply run the adapter here ...
             self._adapter.run(self._should_run)
 
         # shutdown the instance here ...

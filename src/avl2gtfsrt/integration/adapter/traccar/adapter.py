@@ -7,19 +7,21 @@ from requests import Session, Response
 from threading import Event, Thread
 from websocket import WebSocketApp
 
-from avl2gtfsrt.integration.iom.client import IomClient
 from avl2gtfsrt.integration.adapter.realtimeadapter import RealtimeAdapter
 from avl2gtfsrt.integration.model.types import VehiclePosition, Vehicle
 
 class TraccarAdapter(RealtimeAdapter):
     
-    def __init__(self, instance_id, config, iom: IomClient):
-        super().__init__(instance_id, config, iom)
+    def __init__(self, instance_id, config: dict):
+        super().__init__(instance_id, config)
 
     def _on_open(self, ws: WebSocketApp) -> None:
         logging.info(f"{self.instance_id}/{self.__class__.__name__}: WebSocket connected.")
 
     def _on_message(self, ws: WebSocketApp, message: str) -> None:
+        if self.on_vehicle_log_off is not None:
+            self.on_vehicle_log_off(None)
+        
         logging.debug(f"{self.instance_id}/{self.__class__.__name__}: Received message: {message}")
 
     def _on_error(self, ws: WebSocketApp, error: Exception) -> None:

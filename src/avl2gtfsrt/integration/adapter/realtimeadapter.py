@@ -1,14 +1,15 @@
 from abc import abstractmethod
 
-from avl2gtfsrt.integration.iom.client import IomClient
 from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
 
 class RealtimeAdapter(BaseAdapter):
     
-    def __init__(self, instance_id: str, config: dict, iom: IomClient) -> None:
+    def __init__(self, instance_id: str, config: dict) -> None:
         super().__init__(instance_id, config)
 
-        self._iom: IomClient = iom
+        self.on_vehicle_log_on: callable|None = None
+        self.on_vehicle_log_off: callable|None = None
+        self.on_vehicle_physical_position_update: callable|None = None
 
     @abstractmethod
     def run(self) -> None:
