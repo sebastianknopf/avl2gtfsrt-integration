@@ -11,9 +11,6 @@ class PollingAdapter(BaseAdapter):
 
         self.interval: int = config['interval']
 
-    def _get_url(self, resource: str) -> str:
-        return f"{self.endpoint}/{resource}"
-
     @abstractmethod
     def get_vehicles(self) -> list[Vehicle]:
         pass
