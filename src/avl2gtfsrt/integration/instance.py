@@ -30,6 +30,9 @@ class AvlDataInstance:
         if config['adapter']['type'] == 'pajgps':
             from avl2gtfsrt.integration.adapter.pajgps.adapter import PajGpsAdapter
             self._adapter: BaseAdapter = PajGpsAdapter(self.id, config['adapter'])
+        elif config['adapter']['type'] == 'traccar':
+            from avl2gtfsrt.integration.adapter.traccar.adapter import TraccarAdapter
+            self._adapter: BaseAdapter = TraccarAdapter(self.id, config['adapter'], self._iom)
         else:
             raise ValueError(f"Unknown adapter type {config['adapter']['type']} in instance \"{self.id}\"!")
 
@@ -135,7 +138,7 @@ class AvlDataInstance:
             
             # this is realtime adapter, so we don't need to manage its lifecycle by intervals
             # simply run the adapter here ...
-            self._adapter.run(self._iom)
+            self._adapter.run(self._should_run)
 
         # shutdown the instance here ...
         # log off all actively monitored vehicles
