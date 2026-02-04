@@ -148,14 +148,14 @@ class TraccarAdapter(RealtimeAdapter):
                 on_close=self._on_close
             )
 
-            def _delete_flag(event: Event, ws: WebSocketApp) -> None:
+            def __stop_event_handler(event: Event, ws: WebSocketApp) -> None:
                 while event.is_set():
                     time.sleep(1)
 
                 logging.info(f"{self.instance_id}/{self.__class__.__name__}: Stopping WebSocket connection ...")
                 self._ws.close()
 
-            delete_thread: Thread = Thread(target=_delete_flag, args=(event, self._ws), daemon=True)
+            delete_thread: Thread = Thread(target=__stop_event_handler, args=(event, self._ws), daemon=True)
             delete_thread.start()
 
             # deactivate websocket's internal logger and start connection

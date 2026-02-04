@@ -136,14 +136,27 @@ class AvlDataInstance:
 
         elif isinstance(self._adapter, RealtimeAdapter):
             
-            # this is realtime adapter, so we only need to configure its callback methods and process the results in
-            # IomClient implementation
-            self._adapter.on_vehicle_log_on = lambda v: self._iom.log_on_vehicle(v)
-            self._adapter.on_vehicle_log_off = lambda v: self._iom.log_off_vehicle(v)
-            self._adapter.on_vehicle_physical_position_update = lambda vp: self._iom.publish_gnss_position_update(vp)
+            try:
+                # this is realtime adapter, so we only need to configure its callback methods and process the results in
+                # IomClient implementation
 
-            # then,simply run the adapter here ...
-            self._adapter.run(self._should_run)
+                # this callback function adds the vehicle to the internal list to ensure the vehicle is logged off on shutdown
+                # other handlers are not required as the data are published to the IomClient directly
+                def __log_on_handler(vehicle: Vehicle) -> None:
+                    if not vehicle in self._vehicles:
+                        self._vehicles.append(vehicle)
+
+                    self._iom.log_on_vehicle(vehicle)
+
+                self._adapter.on_vehicle_log_on = __log_on_handler
+                self._adapter.on_vehicle_log_off = lambda v: self._iom.log_off_vehicle(v)
+                self._adapter.on_vehicle_physical_position_update = lambda vp: self._iom.publish_gnss_position_update(vp)
+
+                # then,simply run the adapter here ...
+                self._adapter.run(self._should_run)
+
+            except Exception as ex:
+                    logging.error(ex)
 
         # shutdown the instance here ...
         # log off all actively monitored vehicles
