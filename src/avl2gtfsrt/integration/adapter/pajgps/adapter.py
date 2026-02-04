@@ -4,10 +4,10 @@ import requests
 from datetime import datetime, timedelta
 from requests import Response
 
-from avl2gtfsrt.integration.adapter.baseadapter import BaseAdapter
+from avl2gtfsrt.integration.adapter.pollingadapter import PollingAdapter
 from avl2gtfsrt.integration.model.types import VehiclePosition, Vehicle
 
-class PajGpsAdapter(BaseAdapter):
+class PajGpsAdapter(PollingAdapter):
     
     def __init__(self, instance_id: str, config: dict) -> None:
         super().__init__(instance_id, config)
