@@ -4,6 +4,7 @@ Integration service for arbitrary GNSS tracker APIs to work with [avl2gtfsrt](ht
 Currently, following providers are supported:
 
 - [PAJ GPS](https://www.paj-gps.de/) (Adapter Name: `pajgps`)
+- [Traccar](https://www.traccar.org/) (Adapter Name: `traccar`, [Additional Hints](/docs/TRACCAR.md))
 
 ## Installation
  
