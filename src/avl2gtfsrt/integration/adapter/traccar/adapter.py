@@ -130,6 +130,37 @@ class TraccarAdapter(RealtimeAdapter):
             self._login_token = cookies['JSESSIONID']
             self._login_expiration = datetime.now() + timedelta(days=30)
 
+        # load initial device list to populate vehicle tracking
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Loading initial vehicle list ...")
+        devices_response: Response = session.get(
+            self._get_url('devices'),
+            headers={
+                'accept': 'application/json',
+                'Cookie': f"JSESSIONID={self._login_token}"
+            }
+        )
+
+        devices_response.raise_for_status()
+
+        devices_data: dict = devices_response.json()
+        for device in devices_data:
+            device_id: str = device['id']
+            vehicle: Vehicle|None = next((v for v in self._vehicles if v.id == device_id), None)
+
+            # add vehicle to tracking if not already present
+            if vehicle is None:
+                if 'vehicleId' not in device['attributes']:
+                    logging.warning(f"{self.instance_id}/{self.__class__.__name__}: Device {device_id} has no vehicleId attribute. Using name \"{device['name']}\"as fallback.")
+                
+                vehicle = Vehicle(
+                    id=device_id,
+                    vehicle_ref=device['attributes']['vehicleId'] if 'vehicleId' in device['attributes'] else device['name']
+                )
+
+                self._vehicles.append(vehicle)
+        
+        logging.info(f"{self.instance_id}/{self.__class__.__name__}: Found {len(self._vehicles)} vehicles.")
+
         return True
     
     def run(self, event: Event) -> None:
