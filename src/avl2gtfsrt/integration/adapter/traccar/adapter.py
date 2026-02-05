@@ -3,7 +3,7 @@ import logging
 import urllib
 import time
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from requests import Session, Response
 from threading import Event, Thread
 from websocket import WebSocketApp
@@ -52,6 +52,11 @@ class TraccarAdapter(RealtimeAdapter):
                 # ignore positon if valid flag is false
                 if not position['valid']:
                     logging.info(f"{self.instance_id}/{self.__class__.__name__}: Received invalid position for device {device_id}. Position was ignored.")
+                    continue
+
+                # ignore positon if it is too old
+                if datetime.fromisoformat(position['fixTime']) < datetime.now(timezone.utc) - timedelta(minutes=5):
+                    logging.info(f"{self.instance_id}/{self.__class__.__name__}: Received outdated position for device {device_id}. Position was ignored.")
                     continue
 
                 vehicle_position: VehiclePosition = VehiclePosition(

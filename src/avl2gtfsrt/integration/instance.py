@@ -141,16 +141,23 @@ class AvlDataInstance:
                 # IomClient implementation
 
                 # this callback function adds the vehicle to the internal list to ensure the vehicle is logged off on shutdown
-                # other handlers are not required as the data are published to the IomClient directly
                 def __log_on_handler(vehicle: Vehicle) -> None:
                     if not vehicle in self._vehicles:
                         self._vehicles.append(vehicle)
 
                     self._iom.log_on_vehicle(vehicle)
 
+                # this callback function adds the vehicle position update to IoM client
+                # positions older than autologoff timespan are ignored here
+                def __physical_position_update_handler(vehicle_position: VehiclePosition) -> None:
+                    reference_timestamp: int = int((datetime.now() - timedelta(seconds=self._adapter.autologoff)).timestamp())
+                    
+                    if vehicle_position.timestamp > reference_timestamp:
+                        self._iom.publish_gnss_position_update(vehicle_position)
+
                 self._adapter.on_vehicle_log_on = __log_on_handler
                 self._adapter.on_vehicle_log_off = lambda v: self._iom.log_off_vehicle(v)
-                self._adapter.on_vehicle_physical_position_update = lambda vp: self._iom.publish_gnss_position_update(vp)
+                self._adapter.on_vehicle_physical_position_update = __physical_position_update_handler
 
                 # then,simply run the adapter here ...
                 self._adapter.run(self._should_run)
